@@ -1,21 +1,21 @@
 @inproceedings{ns3gym,
-  title={ns-3 meets OpenAI Gym: The Playground for Machine Learning in Networking Research},
+  title={{ns-3 meets OpenAI Gym: The Playground for Machine Learning in Networking Research}},
   author={Gawlowicz, Piotr and Zubow, Anatolij},
-  booktitle={Proceedings of the ACM International Conference on Modeling, Analysis and Simulation of Wireless and Mobile Systems (MSWiM)},
+  booktitle={Proc. ACM Int. Conf. on Modeling, Analysis and Simulation of Wireless and Mobile Systems (MSWiM)},
   year={2019}
 }
 
 @inproceedings{boni2021ns3gym,
-  title={Task Offloading in Autonomous IoT Systems using Deep Reinforcement Learning and ns3-gym},
+  title={{Task Offloading in Autonomous IoT Systems using Deep Reinforcement Learning and ns3-gym}},
   author={Boni, Abdel Kader Chabi Sika and Hassan, Hassan and Drira, Khalil},
-  booktitle={Proceedings of the 11th International Conference on the Internet of Things},
+  booktitle={Proc. 11th Int. Conf. on the Internet of Things},
   pages={17--24},
   year={2021},
   doi={10.1145/3494322.3494325}
 }
 
 @article{frikha2021wrlsurvey,
-  title={Reinforcement and deep reinforcement learning for wireless Internet of Things: A survey},
+  title={{Reinforcement and deep reinforcement learning for wireless Internet of Things: A survey}},
   author={Frikha, Mohamed Said and Gammar, Sonia Mettali and Lahmadi, Abdelkader and Andrey, Laurent},
   journal={Computer Communications},
   volume={178},
@@ -25,7 +25,7 @@
 }
 
 @article{leong2020automatica,
-  title={Deep reinforcement learning for wireless sensor scheduling in cyber--physical systems},
+  title={{Deep reinforcement learning for wireless sensor scheduling in cyber--physical systems}},
   author={Leong, Alex S. and Ramaswamy, Arunselvan and Quevedo, Daniel E. and Karl, Holger and Shi, Ling},
   journal={Automatica},
   volume={113},
@@ -35,7 +35,7 @@
 }
 
 @article{luong2019drlsurvey,
-  title={Applications of Deep Reinforcement Learning in Communications and Networking: A Survey},
+  title={{Applications of Deep Reinforcement Learning in Communications and Networking: A Survey}},
   author={Luong, Nguyen Cong and Hoang, Dinh Thai and Gong, Shimin and Niyato, Dusit and Wang, Ping and Liang, Ying-Chang and Kim, Dong In},
   journal={IEEE Communications Surveys \& Tutorials},
   volume={21},
@@ -46,7 +46,7 @@
 }
 
 @article{kim2024wtsn,
-  title={Deep Reinforcement Learning-Based Adaptive Scheduling for Wireless Time-Sensitive Networking},
+  title={{Deep Reinforcement Learning-Based Adaptive Scheduling for Wireless Time-Sensitive Networking}},
   author={Kim, Hanjin and Kim, Young-Jin and Kim, Won-Tae},
   journal={Sensors},
   volume={24},
@@ -57,7 +57,7 @@
 }
 
 @inproceedings{barker2022wcnc,
-  title={Distributed Cooperative Reinforcement Learning for Wireless Sensor Network Routing},
+  title={{Distributed Cooperative Reinforcement Learning for Wireless Sensor Network Routing}},
   author={Barker, Adam and Swany, Martin},
   booktitle={2022 IEEE Wireless Communications and Networking Conference (WCNC)},
   pages={2565--2570},
@@ -66,7 +66,7 @@
 }
 
 @article{dutta2022comnet,
-  title={Distributed Reinforcement Learning for scalable wireless medium access in IoTs and sensor networks},
+  title={{Distributed Reinforcement Learning for scalable wireless medium access in IoTs and sensor networks}},
   author={Dutta, Hrishikesh and Biswas, Subir},
   journal={Computer Networks},
   volume={202},
@@ -76,7 +76,7 @@
 }
 
 @article{sharma2020wsn,
-  title={A distributed reinforcement learning based sensor node scheduling algorithm for coverage and connectivity maintenance in wireless sensor network},
+  title={{A distributed reinforcement learning based sensor node scheduling algorithm for coverage and connectivity maintenance in wireless sensor network}},
   author={Sharma, Anamika and Chauhan, Siddhartha},
   journal={Wireless Networks},
   volume={26},
@@ -87,7 +87,7 @@
 }
 
 @article{mishra2023sleep,
-  title={Dynamic Sleep Scheduling for Wireless Sensor Transmissions Based on Reinforcement Learning},
+  title={{Dynamic Sleep Scheduling for Wireless Sensor Transmissions Based on Reinforcement Learning}},
   author={Mishra, Shashank and Liang, Jia-Ming},
   journal={IEEE Sensors Letters},
   volume={7},
@@ -98,7 +98,7 @@
 }
 
 @article{nagib2023safe,
-  title={Toward Safe and Accelerated Deep Reinforcement Learning for Next-Generation Wireless Networks},
+  title={{Toward Safe and Accelerated Deep Reinforcement Learning for Next-Generation Wireless Networks}},
   author={Nagib, Ahmad M. and Abou-Zeid, Hatem and Hassanein, Hossam S.},
   journal={IEEE Network},
   volume={37},
@@ -107,5 +107,3 @@
   year={2023},
   doi={10.1109/MNET.106.2100578}
 }
-
-
