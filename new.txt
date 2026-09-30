@@ -9,6 +9,11 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 
+% Compact float and paragraph spacing to meet Springer 8-10 page limit
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+
 \hypersetup{
     pdftitle={Energy-Aware Priority Scheduling in Smart Sensor Networks Using Policy-Guided Deep Reinforcement Learning},
     pdfauthor={Anand Emmanuel Raju B., Radhika N., Radhika G.},
@@ -229,7 +234,8 @@ Figure~\ref{fig:learning} illustrates the training progression over 30 elapsed e
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.78\columnwidth]{figures/fig_1_learning_curve.png}
+    \includegraphics[width=0.72\columnwidth]{figures/fig_1_learning_curve.png}
+    \vspace{-2mm}
     \caption{Double-DQN training progression and validation-score trend over 30 epochs (V76).}
     \label{fig:learning}
 \end{figure}
@@ -240,20 +246,25 @@ The empirical results establish that the policy-guided DQN scheduler substantial
 When compared against the dedicated Strict Priority baseline, however, the learned agent does not achieve superior throughput or HP delay. Strict Priority delivers an average throughput of 7.9104\,kbps, an overall PDR of 56.66\%, and an ultra-low HP latency of 0.0274\,s alongside an HP delivery ratio of 98.34\%. The paired statistical tests in Table~\ref{tab:stats} confirm that these margins are statistically significant ($p < 10^{-11}$), exhibiting large effect sizes.
 
 \subsection{Delay Distribution and Buffer Dynamics}
-Figure~\ref{fig:bar} presents a visual comparison of means and 95\% confidence intervals across key QoS indicators, while Figure~\ref{fig:cdf} details the empirical Cumulative Distribution Functions (CDFs) of packet latencies for both traffic classes.
+Figure~\ref{fig:eval_plots} presents a visual comparison of means and 95\% confidence intervals across key QoS indicators alongside the empirical Cumulative Distribution Functions (CDFs) of packet latencies for both traffic classes.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.78\columnwidth]{figures/fig_4_bar_charts.png}
-    \caption{Pairwise performance comparison (Mean $\pm$ 95\% Confidence Interval) across key QoS metrics.}
-    \label{fig:bar}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.78\columnwidth]{figures/fig_5_delay_cdf.png}
-    \caption{Cumulative Distribution Function (CDF) of packet end-to-end delays for high-priority and normal-priority traffic classes.}
-    \label{fig:cdf}
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig_4_bar_charts.png}
+        \caption{Performance metrics (Mean $\pm$ 95\% CI).}
+        \label{fig:bar}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/fig_5_delay_cdf.png}
+        \caption{Delay CDFs for traffic classes.}
+        \label{fig:cdf}
+    \end{minipage}
+    \label{fig:eval_plots}
+    \vspace{-2mm}
 \end{figure}
 
 The latency CDF curves in Figure~\ref{fig:cdf} reveal the underlying mechanics of each scheduling policy. Strict Priority drives the HP delay curve aggressively toward the origin, ensuring that over 90\% of all high-priority packets are cleared within 50\,ms. However, this aggressive service discipline severely degrades normal telemetry traffic; the normal delay distribution for Strict Priority exhibits a long tail, with average latency climbing to 0.6171\,s. In contrast, the proposed DQN agent balances queue service: it accepts a modest shift in HP delay (averaging 0.1431\,s) to pull the normal traffic delay curve substantially to the left. As reflected in Table~\ref{tab:main_results}, DQN reduces average normal packet delay to 0.4287\,s---a 30.5\% latency reduction compared to Strict Priority ($p = 1.907 \times 10^{-6}, d_z = -3.3284$).
