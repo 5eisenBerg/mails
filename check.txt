@@ -1,0 +1,151 @@
+Dear Author(s),
+
+Greetings from the Conference Organizing Committee of 4th International Conference on  INTELLIGENT COMPUTING TECHNIQUES FOR SMART ENERGY SYSTEMS.
+
+We are pleased to inform you that your paper ID-177: "Energy-Aware Priority Scheduling in Smart Sensor Networks Using Policy-Guided Deep Reinforcement Learning" has been accepted for presentation and publication in the conference proceedings, subject to minor revisions recommended by the reviewers.
+The review comments are already shared in the acceptance email.
+
+The reviewers appreciated the quality and relevance of your work. However, a few minor modifications are required before the final submission. Kindly address all reviewer comments carefully and submit the revised manuscript within the stipulated deadline.
+
+Please ensure that:
+
+All reviewer suggestions are incorporated appropriately.
+Changes are highlighted in the revised manuscript.
+The final paper follows the conference formatting guidelines.
+Plagiarism overall should not be more than 20%, including References
+AI detection should not be more than 10%
+
+Payment Details:
+Payment Link:
+
+https://formbuilder.ccavenue.com/live/ccavenue/manipal-university-jaipur-2/ictses-2026012
+
+Last date to register 30th September 2026.
+Registration Link:
+https://forms.gle/hpLr4zW96UkPZYSa6
+
+The plagiarism check of the final proof will be done.
+After successful submission of the revised version and completion of the registration process, your paper will be included in the conference program and proceedings.
+
+Warm Regards
+Team ICTSES 2026
+
+
+
+
+Please do not reply to this email as it was generated from an email account that is not monitored.
+
+
+To stop receiving conference emails, you can check the 'Do not send me conference email' box from your User Profile.
+
+Microsoft respects your privacy. To learn more, please read our Privacy Statement.
+
+Microsoft Corporation
+One Microsoft Way
+Redmond, WA 98052
+
+
+
+
+--------
+
+Dear Author(s),
+
+Greetings from the Conference Organizing Committee of 4th International Conference on  INTELLIGENT COMPUTING TECHNIQUES FOR SMART ENERGY SYSTEMS.
+
+We are pleased to inform you that your paper ID-177: "Energy-Aware Priority Scheduling in Smart Sensor Networks Using Policy-Guided Deep Reinforcement Learning" has been accepted for presentation and publication in the conference proceedings, subject to minor revisions recommended by the reviewers.
+The review comments are already shared in the acceptance email.
+
+The reviewers appreciated the quality and relevance of your work. However, a few minor modifications are required before the final submission. Kindly address all reviewer comments carefully and submit the revised manuscript within the stipulated deadline.
+
+Please ensure that:
+
+All reviewer suggestions are incorporated appropriately.
+Changes are highlighted in the revised manuscript.
+The final paper follows the conference formatting guidelines.
+Plagiarism overall should not be more than 20%, including References
+AI detection should not be more than 10%
+
+Payment Details:
+Payment Link:
+
+https://formbuilder.ccavenue.com/live/ccavenue/manipal-university-jaipur-2/ictses-2026012
+
+Last date to register 30th September 2026.
+Registration Link:
+https://forms.gle/hpLr4zW96UkPZYSa6
+
+The plagiarism check of the final proof will be done.
+After successful submission of the revised version and completion of the registration process, your paper will be included in the conference program and proceedings.
+
+Warm Regards
+Team ICTSES 2026
+
+
+
+
+Please do not reply to this email as it was generated from an email account that is not monitored.
+
+
+To stop receiving conference emails, you can check the 'Do not send me conference email' box from your User Profile.
+
+Microsoft respects your privacy. To learn more, please read our Privacy Statement.
+
+Microsoft Corporation
+One Microsoft Way
+Redmond, WA 98052 no
+
+
+-----
+
+
+Dear Author(s),
+
+Greetings from the Conference Organizing Committee of 4th International Conference on  INTELLIGENT COMPUTING TECHNIQUES FOR SMART ENERGY SYSTEMS.
+
+We are pleased to inform you that your paper ID-177: "Energy-Aware Priority Scheduling in Smart Sensor Networks Using Policy-Guided Deep Reinforcement Learning" has been accepted for presentation and publication in the conference proceedings, subject to minor revisions recommended by the reviewers.
+
+The reviewers appreciated the quality and relevance of your work. However, a few minor modifications are required before the final submission. Kindly address all reviewer comments carefully and submit the revised manuscript within the stipulated deadline.
+
+Please ensure that:
+
+All reviewer suggestions are incorporated appropriately.
+Changes are highlighted in the revised manuscript.
+The final paper follows the conference formatting guidelines.
+Overall plagiarism should not exceed 15%, including the bibliography.
+AI detection should not be more than 10%
+Page length should be between 8-10 pages in Springer format as per the attached guidelines
+
+Follow guidelines for final proof:
+https://www.springernature.com/gp/authors/publish-a-book/step-by-step-conference-proceedings
+
+Review Comments:
+Reviewer 1
+Section 5.1 ("Training Dynamics and Policy Behavior") and Section 5.2 ("Comparative Views") are empty headers with no content - the material that should go into them seems to have been combined into 5.3/5.4 instead, leaving orphaned subsection names that need fixing or removing.
+The primary finding is that the proposed DQN scheduler performs worse than the standard Strict Priority baseline in almost all the HP-centric metrics (throughput, PDR, PLR, HP delay, HP delivery ratio), with statistically significant differences shown in Table 3. However, it is an honest report and leaves the question open as to what practical contribution the learnt policy provides over the considerably simpler rule-based baseline in this arrangement, outside a minor improvement in normal-traffic delay.
+Only one traffic/network configuration is evaluated (100 nodes, one sink, fixed control interval, fixed episode length) — no sensitivity analysis across different traffic loads, HP/normal traffic ratios, or node counts, so it’s not clear if the DQN-vs-Strict-Priority gap is specific to this scenario or a general pattern, despite the paper’s own “Threats to Validity” acknowledging this limitation.
+The writing needs a lot of improvement, many of the sentences are short and repetitious or grammatically sloppy (e.g. “WSNs are important. WSNs have applications. There are many references to Sharma and Chauhan’s work in Section 2 (Related Work), and multiple redundant/duplicated sentences detailing their work, which suggests a careful rewrite/proofread of the related work and introduction.
+We do not test any non-RL adaptive baselines beyond Strict Priority and Random (the paper itself notes in Section 6/Future Work that “stronger non-RL adaptive baselines” are still needed). So the comparison set is fairly narrow for establishing where DRL adds value over simpler heuristics like weighted round-robin or deadline-aware scheduling.
+
+Reviewer 2
+SECTION 5.1 and 5.2 are missing, insufficient results and hardly matched to the theme of the conference. The paper lack technical information
+
+The ICTSES committee and Springer will check plagiarism in the camera-ready paper. If it is not within the mentioned limits,  the publisher may reject it.
+After you successfully submit the revised version and complete the registration process, your paper will be included in the conference program and proceedings.
+
+Warm Regards
+
+Organizers
+ICTSES 2026
+
+
+Please do not reply to this email as it was generated from an email account that is not monitored.
+
+
+To stop receiving conference emails, you can check the 'Do not send me conference email' box from your User Profile.
+
+Microsoft respects your privacy. To learn more, please read our Privacy Statement.
+
+Microsoft Corporation
+One Microsoft Way
+Redmond, WA 98052
