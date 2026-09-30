@@ -51,7 +51,7 @@ When localized packet queues become congested, the scheduling discipline execute
 
 Deep Reinforcement Learning (DRL) offers an adaptive alternative by formulating scheduling as a Markov Decision Process (MDP), allowing edge gateways to learn dynamic queue management policies through continuous closed-loop interaction \cite{luong2019drlsurvey}. Nevertheless, deploying model-free DRL within mission-critical infrastructure presents substantial challenges, including training divergence, sample inefficiency, and policy collapse. In multi-objective queue management, unconstrained reward functions frequently steer agents toward degenerate local optima---such as exclusively transmitting normal packets to secure frequent, short-term rewards while allowing critical fault alerts to expire.
 
-This paper presents an empirical investigation of a policy-guided Double-DQN packet scheduler evaluated within an integrated co-simulation framework that couples PyTorch with the ns-3 discrete-event network simulator via ns3-gym \cite{ns3gym,boni2021ns3gym}. Rather than presenting an overstated narrative of universal superiority, we investigate a concrete systems question: can a learned DRL policy reliably maintain high-priority service quality while offering stable, competitive performance against a dedicated Strict Priority baseline under seed-synchronized evaluation conditions?
+This paper presents an empirical investigation of a policy-guided Double-DQN packet scheduler evaluated within an integrated co-simulation framework that couples PyTorch with the ns-3 discrete-event network simulator via ns3-gym \cite{ns3gym,boni2021ns3gym}. Rather than presenting an overstated narrative of universal superiority, we investigate a concrete systems question: can a learned DRL policy reliably maintain high-priority service quality while offering stable, competitive performance against a dedicated Strict Priority baseline under seed-synchronized evaluation conditions? 
 
 The core contributions of this work are summarized as follows:
 \begin{itemize}
@@ -107,14 +107,14 @@ where $N_{\text{sent}}^H$ and $N_{\text{sent}}^N$ represent confirmed deliveries
 
 To ensure the agent reliably services critical traffic without eliminating operational flexibility, we introduce the soft policy guidance term:
 \begin{equation}
-r_t^{\text{guide}} =
+r_t^{\text{guide}}=
 \begin{cases}
 +\alpha, & a_t = 0 \text{ and } q_t^H > 0\\
 -\beta, & a_t \neq 0,\; q_t^H > 0,\; a_t^H > \tau_u\\
 0, & \text{otherwise}
 \end{cases}
 \end{equation}
-with bonus $\alpha = 6.0$, penalty $\beta = -8.0$, and urgency age threshold $\tau_u = 0.55$. Under this formulation, the agent receives positive reinforcement for servicing HP packets. Critically, the omission penalty $\beta$ is withheld if the waiting HP packet is young ($a_t^H \le \tau_u$). This design grants the scheduler autonomy to temporarily withhold a newly arrived HP packet to flush an aging normal queue, intervening with negative feedback only when an HP packet approaches critical delay boundaries.
+with bonus $\alpha = 6.0$, penalty $\beta = 8.0$, and urgency age threshold $\tau_u = 0.55$. Under this formulation, the agent receives positive reinforcement for servicing HP packets. Critically, the omission penalty $\beta$ is withheld if the waiting HP packet is young ($a_t^H \le \tau_u$). This design grants the scheduler autonomy to temporarily withhold a newly arrived HP packet to flush an aging normal queue, intervening with negative feedback only when an HP packet approaches critical delay boundaries.
 
 \section{Methodology}
 
@@ -272,7 +272,7 @@ The latency CDF curves in Figure~\ref{fig:cdf} reveal the underlying mechanics o
 \subsection{Trade-Off Analysis in Smart Grid Telemetry}
 The quantitative divergence between DQN-Edge and Strict Priority demonstrates a clear engineering trade-off. Strict Priority behaves as a greedy, myopic heuristic; it prioritizes immediate HP transmissions regardless of normal queue status. In smart utility applications characterized by bursty fault activity, this myopic behavior induces buffer overflow for routine measurements, depriving grid operators of continuous current, voltage, and thermal sensor readings.
 
-The policy-guided DQN scheduler learns a cooperative balancing policy. By observing head-of-line packet ages ($a_t^H, a_t^N$), the agent learns that newly arrived HP packets can tolerate brief queuing periods without violating their 1.0\,s deadline. During these brief windows, the agent opportunistically clears pending normal telemetry packets before they expire. By accepting a 2.56\% reduction in HP delivery ratio and a 115.7\,ms increase in HP delay, the learned scheduler delivers a 30.5\% improvement in normal packet latency, preserving telemetry flow while maintaining robust 95.78\% delivery for critical protection alerts.
+The policy-guided DQN scheduler learns a cooperative balancing policy. By observing head-of-line packet ages ($a_t^H, a_t^N$), the agent learns that newly arrived HP packets can tolerate brief queuing periods without violating their 1.0\,s deadline. During these brief windows, the agent opportunistically clears pending normal telemetry packets before they expire. By sacrificing a minor $2.56\%$ in high-priority delivery ratio and accepting a small latency increase of $115.7$\,ms, the DRL scheduler improves normal-priority packet latency by **30.5\%** and significantly stabilizes buffer occupancy across both traffic classes.
 
 \subsection{Diagnostic Analysis: Reward Shaping vs. Policy Collapse}
 Our development process provided an important lesson regarding reward formulation in communications DRL. In earlier experiments using an unconstrained reward function (V74 configuration), the scheduler suffered from complete policy collapse: the agent converged to a degenerate policy that selected Action 1 (send normal) in 100\% of decision steps. Because normal packets were abundant, transmitting normal traffic provided steady rewards, whereas attempting HP transmissions incurred risk due to bursty arrivals and contention. In that failed run, zero HP packets were delivered. However, because the simulator contained a zero-division safeguard defaulting average delay to 0.0 when no packets were delivered, the output superficially reported ``0.0000\,s delay''---a deceptive artifact that masked complete high-priority starvation.
@@ -280,7 +280,7 @@ Our development process provided an important lesson regarding reward formulatio
 Introducing the soft policy guidance in V76, paired with an HP-aware validation scoring metric, successfully resolved this pathology. By penalizing the scheduler only when an HP packet aged past $\tau_u = 0.55$, the agent was steered away from trivial local optima without sacrificing its ability to dynamically manage queues. This highlights that reinforcement learning applied to communication protocols requires explicit per-class packet tracking, action distribution validation, and tail latency profiling rather than aggregate reward monitoring alone.
 
 \section{Discussion}
-The results confirm that Double-DQN can learn stable, multi-objective scheduling behaviors that enhance fairness in mixed-criticality sensor clusters. Nevertheless, the fact that Strict Priority remains superior on raw high-priority latency indicates structural limitations in the unconstrained DRL formulation. First, the 6-dimensional observation vector provides partial observability, omitting instantaneous wireless channel state information (CSI) and physical-layer signal-to-noise ratios. Second, single-agent Q-learning struggles to match the extreme responsiveness of deterministic heuristics on boundary cases without explicit safety overrides.
+The results confirm that Double-DQN can learn stable, multi-objective scheduling behaviors that enhance fairness in mixed-criticality sensor clusters. Nevertheless, the fact that Strict Priority remains superior on raw high-priority latency indicates structural limitations in the unconstrained DRL formulation. First, the compact 6-dimensional state vector may limit the agent's observability, hiding fine-grained channel state variations. Second, single-agent Q-learning struggles to match the extreme responsiveness of deterministic heuristics on boundary cases without explicit safety overrides.
 
 To advance learning-based scheduling for smart grid deployments, future work should address three methodological directions:
 \begin{itemize}
@@ -298,7 +298,7 @@ Second, the observed performance boundaries are tied to the evaluated traffic lo
 This study presented a reproducible, statistically grounded evaluation of deep reinforcement learning for priority-aware packet scheduling in wireless sensor networks supporting smart energy infrastructure. By coupling ns-3 with PyTorch via ns3-gym, we trained a policy-guided Double-DQN agent over mixed-criticality traffic workloads. Across 20 seed-synchronized evaluation runs, the learned scheduler substantially outperformed random baseline allocation and preserved a 95.78\% high-priority delivery ratio, but did not match Strict Priority in raw high-priority latency or throughput. However, the learned policy demonstrated superior multi-objective queue balancing, achieving a 30.5\% reduction in normal telemetry delay and mitigating buffer starvation. These findings provide an open empirical benchmark that clarifies the practical performance boundaries and trade-offs of learning-based controllers in safety-critical sensor communications.
 
 \section*{Reproducibility Package}
-To facilitate independent verification, the complete simulation artifacts---including the raw evaluation dataset (\texttt{raw\_results\_v76.csv}), training history (\texttt{training\_log\_v76.csv}), statistical summary tables (\texttt{final\_results\_v76.xlsx}), and the underlying ns-3 C++ and PyTorch source code---are made available for academic reuse.
+To facilitate independent verification, the complete simulation artifacts---including the raw evaluation results (\texttt{raw\_results\_v76.csv}), training history (\texttt{training\_log\_v76.csv}), statistical summary tables (\texttt{final\_results\_v76.xlsx}), and the underlying ns-3 C++ and PyTorch source code---are made available for academic reuse.
 
 \bibliographystyle{splncs04}
 \bibliography{references}
