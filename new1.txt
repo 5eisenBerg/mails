@@ -9,12 +9,12 @@
 \usepackage{hyperref}
 \usepackage{xcolor}
 
-% Compact float and paragraph spacing to meet Springer 8-10 page limit
-\setlength{\textfloatsep}{7pt plus 1.5pt minus 1.5pt}
-\setlength{\floatsep}{5pt plus 1.5pt minus 1.5pt}
-\setlength{\intextsep}{5pt plus 1.5pt minus 1.5pt}
-\setlength{\abovecaptionskip}{3pt}
-\setlength{\belowcaptionskip}{3pt}
+% High-efficiency page compression parameters for Springer LNCS margins
+\setlength{\textfloatsep}{6pt plus 1.5pt minus 1.5pt}
+\setlength{\floatsep}{4pt plus 1.5pt minus 1.5pt}
+\setlength{\intextsep}{4pt plus 1.5pt minus 1.5pt}
+\setlength{\abovecaptionskip}{2pt}
+\setlength{\belowcaptionskip}{2pt}
 
 \hypersetup{
     pdftitle={Energy-Aware Priority Scheduling in Smart Sensor Networks Using Policy-Guided Deep Reinforcement Learning},
@@ -32,7 +32,7 @@
 \institute{
 Department of Computer Science and Engineering,\\
 Amrita School of Computing, Coimbatore,\\
-Amrita Vishwa Vidyapeetham, India\\
+Amrita Vishwa Vidyapeetham, India \\
 \email{cb.sc.p2cse25003@cb.students.amrita.edu, \{n\_radhika, g\_radhika\}@cb.amrita.edu}
 }
 
@@ -41,148 +41,163 @@ Amrita Vishwa Vidyapeetham, India\\
 \maketitle
 
 \begin{abstract}
-Wireless sensor networks deployed in power distribution facilities must deliver mixed-criticality traffic across battery-limited links, balancing urgent trip alerts with routine monitoring flows. This paper investigates deep reinforcement learning for queue scheduling through an integrated ns-3 and OpenAI Gym framework. We formulate a Double Deep Q-Network scheduler incorporating prioritized replay and state-dependent reward guidance to prevent queue starvation. Over 20 matched, seed-controlled simulation trials against Strict Priority and random baselines, the learned controller improves upon random allocation and delivers 95.78\% of high-priority packets. Although it does not match the high-priority latency of the Strict Priority heuristic, the agent reduces normal telemetry delay by 30.5\% by dynamically balancing buffer occupancy. We document these findings as a reproducible benchmark clarifying the operational trade-offs of learning-based schedulers in smart utility communications.
+This paper explores deep reinforcement learning (DRL) for packet-level queue scheduling within energy-constrained wireless sensor networks (WSNs) carrying heterogeneous traffic profiles—specifically, urgent alarm signals alongside routine telemetry. Interfacing PyTorch with the ns-3 simulator via the ns3-gym middleware, we train a Double-DQN scheduler enhanced by prioritized experience replay. To mitigate priority starvation and policy instability, we formulate a soft, state-dependent reward guidance mechanism. Across 20 seed-synchronized, independent co-simulation trials, we analyze this learned controller against a deterministic Strict Priority baseline and a uniform random scheduler. Although our reinforcement learning agent easily outperforms random scheduling and preserves high delivery rates for priority traffic, it falls short of the Strict Priority baseline in throughput, overall packet delivery ratio, and high-priority delay. We report these findings as a transparent, empirical benchmark that defines a clear performance boundary for model-free controllers in safety-critical sensor networks.
 
 \keywords{Smart Energy Systems \and Wireless Sensor Networks \and Reinforcement Learning \and ns-3 \and QoS \and Priority Scheduling}
 \end{abstract}
 
 \section{Introduction}
-Modern power grids depend on wireless sensor networks (WSNs) to monitor substations, track distribution feeders, and signal transient electrical faults. Nodes in these setups operate with limited energy reserves and face stochastic channel conditions. Their traffic splits into two distinct classes: critical alarm bursts (breaker trips and protection triggers) and routine continuous telemetry (load levels and voltage readings). Grid protection mandates that fault signals arrive with low latency, while steady state estimation requires that routine telemetry avoid buffer exhaustion \cite{frikha2021wrlsurvey,leong2020automatica}.
+Modern smart energy infrastructures rely heavily on Wireless Sensor Networks (WSNs) deployed at the edge to monitor grid stability, track consumption patterns, and report critical fault events. Operating under severe energy limitations, these sensor nodes frequently handle mixed-criticality traffic workloads. For instance, routine periodic telemetry (normal-priority traffic) must coexist with sporadic, time-sensitive emergency alerts (high-priority traffic) triggered by system anomalies or grid faults. Under bursty load conditions, the underlying packet scheduling mechanism at each sensor node directly dictates critical network performance metrics, including the packet delivery ratio (PDR), deadline compliance, end-to-end latency, and the overall operational lifetime of the battery-powered nodes \cite{frikha2021wrlsurvey,leong2020automatica}.
 
-When traffic surges congest local queues, gateway scheduling dictates the overall Packet Delivery Ratio (PDR), deadline compliance, buffer drops, and node lifetime. Conventional deployments rely on Strict Priority (SP) because it is simple, deterministic, and requires minimal compute. Under stationary workloads, Strict Priority forwards high-priority (HP) traffic ahead of normal-priority (NP) traffic. However, during extended grid disturbance events when protection alarms fire repeatedly, Strict Priority starves normal telemetry queues. This causes buffer overflow and delayed state-estimation updates at the operations center.
+In smart grid applications, latency and reliability are non-negotiable. Delayed delivery of a fault alert can prevent protective relays from isolating a short circuit, leading to catastrophic equipment damage or cascading grid failures. Traditional static queue scheduling heuristics, such as Strict Priority (SP), are widely used due to their simple design and predictable execution. However, static rules are inherently rigid and cannot adapt to dynamic network conditions, varying traffic intensities, or changing residual energy profiles. For example, Strict Priority blindly prioritizes high-priority packets, which often leads to severe queue starvation, high buffer overflows, and excessive drop rates for normal telemetry data during prolonged congestion periods.
 
-Deep Reinforcement Learning (DRL) provides an adaptive alternative by casting scheduling as a Markov Decision Process (MDP), allowing edge gateways to learn dynamic queuing strategies from environmental feedback \cite{luong2019drlsurvey}. Yet training model-free agents in communication systems introduces instability, sample inefficiency, and potential policy collapse. Unconstrained reward functions often bias agents toward degenerate behaviors, such as serving only normal traffic to collect frequent, safe rewards while dropping critical alarms.
+To address these limitations, Deep Reinforcement Learning (DRL) has emerged as a promising paradigm for learning adaptive, state-aware control policies directly from closed-loop interaction with the environment. By modeling queue scheduling as a Markov Decision Process (MDP), a DRL agent can theoretically discover optimal scheduling policies that balance conflicting network objectives. However, deploying model-free DRL agents in actual communication systems introduces significant challenges, including slow convergence, extreme policy instability during early training phases, and the risk of policy collapse. In multi-objective networking scenarios, a poorly constrained reward function often leads the agent to discover degenerate local optima, such as completely ignoring high-priority packets to maximize the delivery of more frequent normal-priority traffic.
 
-We examine a policy-guided Double-DQN packet scheduler through a co-simulation environment linking PyTorch and the ns-3 network simulator via ns3-gym \cite{ns3gym,boni2021ns3gym}. We evaluate whether a learned DRL policy can safeguard critical traffic while remaining competitive with Strict Priority across repeatable, seed-synchronized trials.
+This paper presents a systematic, empirical evaluation of a policy-guided Double Deep Q-Network (Double-DQN) queue scheduler using an integrated co-simulation framework that couples PyTorch with the ns-3 network simulator via the ns3-gym interface \cite{ns3gym,boni2021ns3gym}. Rather than presenting an idealized, overstated success story, we investigate a narrower, more rigorous systems question: can a learned DRL policy reliably maintain high-priority service quality while offering stable, competitive performance against a highly optimized Strict Priority baseline under repeatable, seed-controlled evaluation conditions? 
 
-Our primary contributions include:
+The core contributions of this work are summarized as follows:
 \begin{itemize}
-    \item An open-source co-simulation testbed connecting ns-3.40 and PyTorch, instrumented for explicit per-class packet tracking and run-level artifact verification.
-    \item A soft policy-guidance reward and validation score that tracks HP generation, delivery, and age, preventing policy collapse without forcing static rule mimicry.
-    \item A statistical evaluation across 20 matched, seed-synchronized simulation runs comparing the learned controller against Strict Priority and random baselines.
-    \item An empirical trade-off analysis showing that while Strict Priority yields lower HP latency, the learned policy reduces normal telemetry delay by 30.5\% while sustaining 95.78\% HP packet delivery.
+    \item We establish a fully open-source, reproducible end-to-end co-simulation pipeline that links the ns-3 network simulator with Python-based DRL libraries, enabling run-level artifact verification.
+    \item We design a soft, state-dependent reward guidance mechanism and an aligned evaluation score that explicitly tracks high-priority packet generation, delivery, and age, preventing the agent from collapsing into degenerate, non-adaptive scheduling behaviors.
+    \item We perform a statistically rigorous comparison of our learned DQN controller against both Strict Priority and Random scheduling baselines over 20 independent, seed-synchronized evaluation runs.
+    \item We present a transparent empirical benchmark, demonstrating that while the learned agent achieves excellent normal-traffic latency improvements and easily outperforms random baselines, the classic Strict Priority heuristic remains highly dominant on primary high-priority QoS metrics under the tested workloads.
 \end{itemize}
 
 \section{Related Work}
-Surveys document how reinforcement learning addresses medium access control, dynamic routing, and packet scheduling \cite{luong2019drlsurvey,frikha2021wrlsurvey}. These reviews point out practical deployment hurdles, notably sample inefficiency, absent safety bounds, and poor generalization under shifting traffic regimes.
+Recent academic literature extensively documents the application of reinforcement learning and deep reinforcement learning to wireless communication networks, spanning medium access control (MAC), routing, and packet scheduling \cite{luong2019drlsurvey,frikha2021wrlsurvey}. While these surveys highlight the massive theoretical potential of learning-based controllers, they consistently point to critical barriers preventing real-world deployment, namely sample inefficiency, lack of safety or priority guarantees, and poor generalization under out-of-distribution traffic patterns.
 
-In WSN research, DRL handles stochastic channel access and energy management. Leong et al. showed that model-free DRL handles uncertain channel fades during sensor transmissions \cite{leong2020automatica}. Sharma and Chauhan implemented distributed RL to sustain sensor coverage while cutting power drain \cite{sharma2020wsn}. Dutta and Biswas applied multi-agent RL to mitigate medium access contention in dense IoT topologies \cite{dutta2022comnet}, while Barker and Swany utilized cooperative RL to discover forwarding paths in multi-hop networks \cite{barker2022wcnc}.
+In WSNs, DRL has been actively explored to optimize sensor scheduling, duty cycles, and energy-aware routing protocols. Leong \textit{et al.} investigated deep reinforcement learning for wireless sensor scheduling in cyber-physical systems, demonstrating that model-free controllers can successfully adapt to dynamic channel uncertainties \cite{leong2020automatica}. Sharma and Chauhan proposed a distributed reinforcement learning scheduling algorithm designed to maintain coverage and connectivity constraints while minimizing energy consumption \cite{sharma2020wsn}. Similarly, Dutta and Biswas developed a distributed RL framework to optimize medium access control in dense IoT sensor deployments \cite{dutta2022comnet}, while Barker and Swany explored cooperative multi-agent RL to solve complex routing problems in multi-hop WSNs \cite{barker2022wcnc}.
 
-Other efforts focus on hardware constraints. Mishra and Liang designed an RL sleep scheduler that extends node lifetime via low-power states \cite{mishra2023sleep}. Nagib et al. evaluated safety and acceleration strategies for wireless DRL, focusing on reward shaping to constrain exploration \cite{nagib2023safe}. Kim et al. verified adaptive DRL schedulers meeting real-time latency deadlines in wireless time-sensitive systems \cite{kim2024wtsn}.
+More specialized studies have focused on aligning RL objectives with physical hardware constraints, such as sleep-scheduling and safety bounds. Mishra and Liang presented an RL-driven dynamic sleep scheduling policy to maximize sensor lifetime by balancing active transmission states and low-power sleep states \cite{mishra2023sleep}. Nagib \textit{et al.} proposed safe DRL design methodologies, emphasizing the use of action projection and reward shaping to enforce hard operational constraints in next-generation wireless systems \cite{nagib2023safe}. Additionally, Kim \textit{et al.} demonstrated the feasibility of using DRL-based adaptive schedulers to meet stringent latency requirements in industrial wireless time-sensitive networking (TSN) environments \cite{kim2024wtsn}.
 
-We focus on systems-level verification within smart grid sensing. We provide run-level artifacts, explicit HP tracking, and validation-gated policy selection to define the practical capabilities of learned schedulers compared to standard heuristics.
+In contrast to existing works that primarily introduce minor algorithmic variations, this paper focuses on systems-level execution and empirical transparency. We provide a fully reproducible benchmark study with explicit high-priority service instrumentation, validation-gated model selection, and run-level statistical verification to define clear performance boundaries for DRL-based schedulers in mixed-criticality sensor networks.
 
 \section{System Model and Problem Formulation}
 
 \subsection{Network and Traffic Model}
-We model an edge sensing cluster representative of a smart grid distribution substation. The network comprises 100 wireless sensor nodes distributed uniformly at random across a 150\,m $\times$ 150\,m planar area, communicating with a central sink gateway located at the center (75\,m, 75\,m). The physical and MAC layers are implemented in ns-3.40 using the IEEE 802.15.4 standard operating in the 2.4\,GHz ISM band with an unslotted CSMA/CA access mechanism, a raw data rate of 250\,kbps, transmit power of 0\,dBm, and a log-distance path loss model ($\gamma = 3.0$). Initial energy per node is configured at 10.0\,J.
-
-Sensor nodes generate two distinct traffic classes: High-Priority (HP) packets representing critical grid disturbance alarms, fault indications, and protection triggers, and Normal-Priority (NP) packets representing periodic telemetry, power-quality measurements, and environmental status updates. High-priority traffic is generated according to an unannounced, bursty Poisson process with arrival intensity $\lambda_H = 0.2$\,packets/s per active node and a payload size of 50 bytes. Normal telemetry traffic follows regular periodic generation with interval $T_N = 2.0$\,s and a payload size of 100 bytes. Each sensor maintains two dedicated, finite-capacity FIFO buffers: an HP buffer of capacity $B_H = 50$ packets and an NP buffer of capacity $B_N = 100$ packets. Packets remaining in either buffer beyond a deadline threshold ($T_H^{\text{max}} = 1.0$\,s, $T_N^{\text{max}} = 3.0$\,s) are dropped as expired timeouts. The scheduling agent situated at the gateway operates at a discrete decision interval of $\Delta t = 100$\,ms over finite simulation episodes spanning 5000 decision steps (500 seconds of simulated time).
+We consider a wireless sensor network scenario consisting of 100 sensor nodes distributed dynamically around a central sink node, simulated using the discrete-event network simulator ns-3. The sensor nodes generate two distinct classes of traffic: High-Priority (HP) emergency packets representing critical grid alerts, and Normal-Priority (NP) periodic telemetry packets. Each node maintains separate, finite-capacity buffers for the two traffic classes. The scheduling agent is located at the edge (e.g., at a cluster head or local gateway) and operates at a discrete control interval of 100 ms. Each simulation episode runs for exactly 5000 decision steps. Crucially, the simulator tracks the generation, delivery, queue occupancy, latency, and timeout/drop events individually for both packet classes, exporting these metrics at the end of each episode to provide complete visibility.
 
 \subsection{MDP Definition}
-We formulate queue scheduling as a discounted Markov Decision Process (MDP) with finite simulation episodes, defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$. At interval $t$, the gateway agent observes state $\mathbf{s}_t \in \mathcal{S}$ and executes action $a_t \in \mathcal{A}$.
+At each discrete decision step $t$, the gateway scheduling agent observes the network state and selects an action. We model this scheduling process as a discounted Markov Decision Process (MDP) with finite simulation episodes defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$.
 
-The state space contains 6 normalized metrics:
+The state space $\mathcal{S}$ is represented by a 6-dimensional normalized vector:
 \begin{equation}
-\mathbf{s}_t = \left[ q_t^{N},\; q_t^{H},\; e_t,\; a_t^{N},\; a_t^{H},\; d_t \right],
+\mathbf{s}_t = [q_t^{N},\; q_t^{H},\; e_t,\; a_t^{N},\; a_t^{H},\; d_t],
 \end{equation}
-where $q_t^{N}, q_t^{H} \in [0, 1]$ represent queue occupancy ratios; $e_t \in [0, 1]$ reflects residual energy; $a_t^{N}, a_t^{H} \in [0, 1]$ denote head-of-line packet ages normalized to expiration deadlines; and $d_t \in [0, 1]$ measures active neighbor density.
+where $q_t^{N}$ and $q_t^{H}$ represent the normalized occupancy proxies of the normal and high-priority queues, respectively; $e_t$ denotes the residual energy proxy of the gateway node; $a_t^{N}$ and $a_t^{H}$ represent the normalized ages of the oldest packets waiting at the head of each queue; and $d_t$ represents the local neighborhood node density proxy, reflecting dynamic channel contention.
 
-The action set comprises 5 discrete commands:
+The action space $\mathcal{A}$ consists of 5 discrete scheduling choices:
 \begin{equation}
 \mathcal{A} = \{\text{send HP (0)},\; \text{send normal (1)},\; \text{drop normal (2)},\; \text{sleep (3)},\; \text{drop HP (4)}\}.
 \end{equation}
-Actions 0 and 1 transmit packets from the respective buffers. Action 3 puts the radio into sleep mode for 100\,ms to save power. Actions 2 and 4 drop stale packets during congestion to prevent buffer bloat.
+Selecting "send HP" or "send normal" initiates the transmission of a packet from the respective queue. "Sleep" puts the radio transceiver into a low-power state for the current interval to conserve residual energy, while "drop normal" and "drop HP" allow the agent to actively clear buffer space to prevent uncontrolled buffer bloat during extreme congestion.
 
-\subsection{Reward Formulation with Soft Policy Guidance}
-Mixed-criticality scheduling requires balanced reward design. Rewarding raw throughput alone leads to policy collapse, as normal packets dominate arrival rates and the agent learns to ignore critical alerts. Conversely, excessive penalties for any HP delay force the network to imitate Strict Priority, eliminating operational flexibility.
+\subsection{Reward Design}
+Enforcing priority queueing behavior in model-free agents is notoriously difficult. If the agent receives a simple linear reward based only on total packet delivery, it will naturally prioritize the normal queue because normal packets are generated much more frequently, leading to policy collapse. Conversely, if the reward is too heavily biased towards high-priority packets, the agent will learn a rigid policy that blindly mimics a basic Strict Priority heuristic, destroying any adaptive capability.
 
-We address this with a bounded reward function using hyperbolic tangent scaling:
+To resolve this objective conflict, we design an outcome-driven, soft-guided reward function. The total step reward $r_t$ is defined as:
 \begin{equation}
-r_t = \tanh\left(\frac{r_t^{\text{base}} + r_t^{\text{guide}}}{100}\right).
+r_t = \tanh\left(\frac{r_t^{\text{base}} + r_t^{\text{guide}}}{100}\right),
 \end{equation}
-The base component reflects primary networking performance:
+where the hyperbolic tangent function scales the reward to the range $[-1, 1]$ to stabilize neural network gradient updates. The term $r_t^{\text{base}}$ is the baseline reward reflecting standard network performance:
 \begin{equation}
-r_t^{\text{base}} = w_1 N_{\text{sent}}^H + w_2 N_{\text{sent}}^N + w_3 N_{\text{drop}}^H + w_4 N_{\text{drop}}^N + w_5 N_{\text{to}}^H + w_6 N_{\text{to}}^N + w_7 (a_t^H)^2 + w_8 (a_t^N)^2 - w_9 \Delta e_t,
+r_t^{\text{base}} = w_1 \cdot \text{HP}_{\text{sent}} + w_2 \cdot \text{Normal}_{\text{sent}} + w_3 \cdot \text{HP}_{\text{dropped}} + w_4 \cdot \text{Normal}_{\text{dropped}} + w_5 \cdot (a_t^{H})^2 + w_6 \cdot (a_t^{N})^2 - w_7 \cdot \Delta e_t,
 \end{equation}
-where $N_{\text{sent}}^H$ and $N_{\text{sent}}^N$ represent confirmed deliveries ($w_1 = 25.0, w_2 = 5.0$); $N_{\text{drop}}$ and $N_{\text{to}}$ penalize buffer overflow drops and timeout expirations ($w_3 = -40.0, w_4 = -8.0, w_5 = -80.0, w_6 = -10.0$); quadratic terms penalize waiting queue latencies ($w_7 = -40.0, w_8 = -2.0$); and $\Delta e_t$ penalizes energy depletion ($w_9 = 250.0$). If the scheduler selects sleep (Action 3), it receives a conservation bonus $r_{\text{sleep}} = +0.5$.
+where $\text{HP}_{\text{sent}}$ and $\text{Normal}_{\text{sent}}$ are binary indicators of successful packet transmissions; $\text{HP}_{\text{dropped}}$ and $\text{Normal}_{\text{dropped}}$ apply penalties to buffer drops and timeouts; $(a_t^{H})^2$ and $(a_t^{N})^2$ apply quadratic penalties to waiting packet ages to minimize latency; and $\Delta e_t$ penalizes energy consumption.
 
-To ensure the agent reliably services critical traffic without eliminating operational flexibility, we introduce the soft policy guidance term:
+The key novel component is the state-dependent, soft policy guidance term $r_t^{\text{guide}}$, defined as:
 \begin{equation}
-r_t^{\text{guide}} =
+r_t^{\text{guide}}=
 \begin{cases}
-+\alpha, & a_t = 0 \text{ and } q_t^H > 0\\
--\beta, & a_t \neq 0,\; q_t^H > 0,\; a_t^H > \tau_u\\
++\alpha, & a_t = 0 \text{ and } q_t^{H}>0\\
+-\beta, & a_t \neq 0,\ q_t^{H}>0,\ a_t^{H}>\tau_u\\
 0, & \text{otherwise}
 \end{cases}
 \end{equation}
-with bonus $\alpha = 6.0$, penalty magnitude $\beta = 8.0$, and urgency age threshold $\tau_u = 0.55$. Under this formulation, the agent receives positive reinforcement for servicing HP packets. Critically, the omission penalty $-\beta$ is applied only when the waiting HP packet is urgent ($a_t^H > \tau_u$). This design grants the scheduler autonomy to temporarily withhold a newly arrived HP packet to flush an aging normal queue, intervening with negative feedback only when an HP packet approaches critical delay boundaries.
+Here, $\alpha = 6.0$ provides a moderate bonus for actively serving the high-priority queue when packets are waiting. Crucially, the penalty term $-\beta$ (with $\beta = 8.0$) is only applied for ignoring the high-priority queue if the oldest high-priority packet has aged beyond an urgency threshold $\tau_u = 0.55$. This "soft guidance" formulation ensures that the agent is not penalized for temporarily delaying newly arrived high-priority packets to drain a congested normal buffer, preserving policy flexibility while strictly preventing high-priority packet starvation.
 
 \section{Methodology}
 
-\subsection{Learning Architecture}
-We adopt a Double Deep Q-Network (Double-DQN) to reduce positive maximization bias during Q-learning updates. In this setup, online parameters $\theta_t$ select the greedy action, while target parameters $\theta_t^{-}$ estimate its value:
+\subsection{Learning Agent}
+To find the optimal scheduling policy, we implement a Double Deep Q-Network (Double-DQN) agent. Standard DQN is highly susceptible to overestimating action-values (Q-values) due to the maximization step in the temporal difference target. Double-DQN decouples the action selection from the action evaluation by using the online network to select the best action and the target network to evaluate its Q-value:
 \begin{equation}
-Y_t^{\text{DoubleQ}} = r_{t+1} + \gamma Q\left(\mathbf{s}_{t+1}, \operatorname{arg\,max}_{a} Q(\mathbf{s}_{t+1}, a; \theta_t);\, \theta_t^{-}\right).
+Y_t^{\text{DoubleQ}} = r_{t+1} + \gamma Q\left(s_{t+1}, \operatorname{arg\,max}_{a} Q(s_{t+1}, a; \theta_t); \theta_t^{-} \right),
 \end{equation}
+where $\theta_t$ represents the parameters of the online network, and $\theta_t^{-}$ represents the parameters of the target network.
 
-Transitions are stored in a Prioritized Experience Replay (PER) buffer of 100,000 samples. Transitions are sampled with probability $P(i) = p_i^\mu / \sum_k p_k^\mu$, using temporal difference error $p_i = |\delta_i| + \epsilon_{\text{per}}$ with prioritization parameter $\mu = 0.6$. Importance sampling weights $w_i = (N \cdot P(i))^{-\nu}$ correct for distribution distortion, annealing $\nu$ from $0.4$ to $1.0$ over 100,000 steps.
-
-The neural architecture employs an MLP with two hidden layers of 64 ReLU neurons mapping $|\mathcal{S}|=6$ inputs to $|\mathcal{A}|=5$ outputs. Target network weights update via Polyak averaging:
+To further improve sample efficiency and training stability, we incorporate a Prioritized Replay Buffer (PER). Instead of sampling transitions uniformly from the replay memory, PER transitions are sampled with a probability proportional to their temporal difference (TD) error, ensuring the agent focuses learning on states with high unexpected transitions. The target network is updated using soft target updates:
 \begin{equation}
-\theta^{-} \leftarrow \tau \theta + (1 - \tau)\theta^{-},
+\theta^{-} \leftarrow \tau \theta + (1-\tau)\theta^{-},
 \end{equation}
-with $\tau = 0.005$. Optimization uses Adam with learning rate $1 \times 10^{-4}$ decayed via Cosine Annealing over 50 epochs, with gradient clipping at $L_2$ norm 1.0. Exploration follows an $\epsilon$-greedy schedule decaying from $1.0$ to $0.05$ (decay factor $0.99995$) after 4000 warm-up steps. Evaluation sets $\epsilon = 0.0$ for deterministic execution.
+with $\tau = 0.005$, ensuring smooth policy transitions. The neural network architecture consists of an input layer, two fully connected hidden layers with 64 units each and ReLU activation functions, and an output layer matching the action space size. We use the Adam optimizer with an initial learning rate of $1\times10^{-4}$ and apply a Cosine Annealing learning rate schedule over the training epochs. 
 
-\subsection{Baselines and Validation Protocol}
-We benchmark the proposed policy-guided DQN against two baseline scheduling schemes:
+During training, the agent balances exploration and exploitation using an $\epsilon$-greedy policy, where $\epsilon$ decays exponentially from $1.0$ to a minimum floor of $0.05$. During the evaluation phase, $\epsilon$ is set to exactly $0.0$ to ensure deterministic policy execution and eliminate exploration-induced noise.
+
+\subsection{Baselines}
+We compare the performance of our proposed DQN-Edge agent against two baseline scheduling policies:
 \begin{itemize}
-    \item \textbf{Strict Priority (SP):} Transmits HP packets whenever $q_t^H > 0$, otherwise transmits normal packets if $q_t^N > 0$, or sleeps when idle.
-    \item \textbf{Random:} Uniformly samples actions at random from $\mathcal{A}$ at each decision step, representing the performance floor.
+    \item \textbf{Strict Priority (SP)}: A hardcoded heuristic that always transmits high-priority packets if any are present in the HP buffer ($q_t^{H} > 0$). If the HP buffer is empty, it transmits normal-priority packets ($q_t^{N} > 0$). If both buffers are empty, the node enters the low-power sleep state.
+    \item \textbf{Random}: A baseline where the agent selects one of the five actions uniformly at random at each decision step, serving as a lower bound on network performance.
 \end{itemize}
 
-Training runs for 50 epochs of 5000 steps each. Checkpoints are evaluated after every epoch across five fixed validation seeds ($99991$--$99995$) using a multi-metric score:
+\subsection{Training and Evaluation Protocol}
+To ensure scientific rigor, we employ a seed-controlled evaluation protocol. Training was configured for a maximum of 50 epochs. Early stopping terminated training after 30 epochs, with the checkpoint from Epoch 12 achieving the highest validation score and therefore selected for final evaluation. The model was validated across five fixed validation seeds ($99991$ to $99995$) using a multi-metric score:
 \begin{equation}
-S_{\text{val}} = 0.40 \left(\frac{\text{PDR}}{100}\right) + 0.10 \left(1 - \frac{\text{PLR}}{100}\right) + 0.35 \left(\frac{\text{HR}}{100}\right) + 0.15 \left(1 - \min\left(\frac{D_H}{1.0}, 1.0\right)\right),
+\text{Score} = 0.40 \cdot \text{PDR} + 0.10 \cdot (1 - \text{PLR}) + 0.35 \cdot \text{HP}_{\text{Ratio}} + 0.15 \cdot \text{HP}_{\text{Delay\_Comp}},
 \end{equation}
-where $\text{HR}$ is the HP delivery percentage and $D_H$ is mean HP delay in seconds. If HP packets are generated but none delivered ($\text{HR} = 0$), a penalty of $-0.25$ is subtracted. Early stopping halts training after 15 stagnated epochs.
+where $\text{HP}_{\text{Ratio}}$ is the high-priority delivery ratio, and $\text{HP}_{\text{Delay\_Comp}}$ is a normalized penalty component based on high-priority packet latency. Crucially, we apply a severe penalty of $-0.25$ to the validation score if high-priority packets were generated during the episode but the agent failed to deliver a single one. This explicitly prevents saving "lazy" policies that maximize overall delivery by completely starving priority traffic.
 
-The final evaluation tests 20 matched runs per policy across identical seeds ($12545$--$12564$). Table~\ref{tab:setup} provides hyperparameter details.
+After training, the saved optimal policy is evaluated across 20 independent, seed-synchronized runs (seeds $12545$ to $12564$). These 20 seeds are identical across all three evaluated policies (DQN-Edge, Strict Priority, and Random), ensuring a perfectly fair, matched comparison.
 
-\begin{table}[t]
+\subsection{Experimental Setup}
+The complete co-simulation environment and neural network training parameters are summarized in Table~\ref{tab:setup}.
+
+\begin{table}[htbp]
 \centering
-\caption{Simulation and Training Hyperparameters (V76 Configuration).}
+\caption{Co-Simulation and Training Parameters.}
 \label{tab:setup}
 \scriptsize
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{ll}
+\begin{tabular}{lc}
 \toprule
 \textbf{Parameter Category} & \textbf{Configured Value} \\
 \midrule
-Simulator & ns-3.40 interfaced via ns3-gym \\
-Network Topology & 100 Nodes + 1 Central Sink (150\,m $\times$ 150\,m) \\
-Physical / MAC Layer & IEEE 802.15.4 (2.4\,GHz ISM Band, CSMA/CA) \\
-Control Interval ($\Delta t$) / Duration & 100\,ms slot / 5000 steps (500\,s real time) \\
-Traffic Generation & Bursty Poisson ($\lambda_H = 0.2$) + Periodic Telemetry ($T_N = 2.0$\,s) \\
-Queue Capacities & HP Buffer: 50 packets; Normal Buffer: 100 packets \\
-State / Action Dimensionality & $|\mathcal{S}| = 6$ continuous, $|\mathcal{A}| = 5$ discrete \\
-Neural Architecture & MLP: $6 \to 64 \to 64 \to 5$ (ReLU activations) \\
-Replay Buffer Capacity & 100,000 transitions (Prioritized: $\mu=0.6, \nu=0.4 \to 1.0$) \\
-Mini-batch Size / Discount Factor & 128 transitions / $\gamma = 0.99$ \\
-Optimizer / Learning Rate & Adam ($\text{lr} = 1 \times 10^{-4}$, Cosine Annealing) \\
-Target Update / Exploration & Soft update ($\tau = 0.005$) / $\epsilon: 1.0 \to 0.05$ (decay $0.99995$) \\
-Evaluation Repetitions & 20 matched runs per policy (seeds $12545$--$12564$) \\
+Simulator & ns-3.40 with ns3-gym \\
+Network Topology & 100 Nodes + 1 Gateway Sink \\
+Control Interval & 100 ms \\
+Replay Buffer Size & 100,000 \\
+Mini-Batch Size & 128 \\
+Learning Rate & $1\times10^{-4}$ \\
+Discount Factor ($\gamma$) & 0.99 \\
+Target Network Update Rate ($\tau$) & 0.005 \\
+Exploration Factor ($\epsilon$) & 1.0 $\rightarrow$ 0.05 \\
+$\epsilon$ Decay Coefficient & 0.99995 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Statistical Evaluation Protocol}
-Evaluated metrics include aggregate throughput (kbps), Packet Delivery Ratio (PDR \%), Packet Loss Ratio (PLR \%), average normal packet delay (s), average HP packet delay (s), specific energy consumption per delivered bit (nJ/bit), and the HP delivery ratio (\%). All metrics are reported as the sample mean alongside their 95\% confidence intervals (CI) computed using Student's $t$-distribution.
+\subsection{Metrics and Statistical Testing}
+We evaluate the schedulers using six primary network performance metrics: throughput (kbps), overall packet delivery ratio (PDR \%), overall packet loss ratio (PLR \%), average normal-priority packet delay (seconds), average high-priority packet delay (seconds), energy consumed per delivered bit (nJ/bit), and the high-priority delivery ratio (\%).
 
-For pairwise significance testing between the proposed DQN scheduler and Strict Priority across the 20 matched trials, we verify the normality of paired differences via the Shapiro-Wilk test at $\alpha = 0.05$. Paired differences for throughput ($p = 0.412$), PDR ($p = 0.385$), PLR ($p = 0.298$), HP delay ($p = 0.514$), energy ($p = 0.621$), and HP delivery ratio ($p = 0.187$) conformed to normal distributions, for which we report two-tailed paired Student's $t$-tests. Normal-delay paired differences departed from normality ($p = 0.0032 < 0.05$), for which we employ the non-parametric Wilcoxon signed-rank test. Practical effect sizes are characterized using paired Cohen's $d_z = \bar{D} / \sigma_D$, where $\bar{D}$ and $\sigma_D$ represent the sample mean and standard deviation of the paired differences across the 20 matched runs.
+For pairwise comparisons between our proposed DQN-Edge agent and the Strict Priority baseline, we perform statistical significance tests across the 20 matched runs. We assess the normality of the paired differences using the Shapiro-Wilk test at a significance level of $\alpha = 0.05$. Paired differences for throughput ($p=0.412$), PDR ($p=0.385$), PLR ($p=0.298$), HP delay ($p=0.514$), energy ($p=0.621$), and HP delivery ratio ($p=0.187$) conformed to normal distributions, for which we report two-tailed paired Student's $t$-tests. Normal-delay paired differences departed from normality ($p=0.0032 < 0.05$), for which we employ the non-parametric Wilcoxon signed-rank test. To evaluate the practical magnitude of the performance gaps, we compute the paired Cohen's $d_z$ effect size from the run-level paired differences.
+
+All summary values, confidence intervals, and statistical tests are computed directly from the raw evaluation logs exported by the co-simulation pipeline (\texttt{raw\_results\_v76.csv}, \texttt{training\_log\_v76.csv}, and \texttt{final\_results\_v76.xlsx}).
 
 \section{Results}
-Table~\ref{tab:main_results} presents quantitative performance metrics compiled over the 20 seed-synchronized evaluation runs. Table~\ref{tab:stats} provides matched statistical significance tests comparing the learned DQN scheduler against the Strict Priority heuristic.
+
+\subsection{Convergence and Training Stability}
+To analyze how the learning agent converges under our proposed soft policy guidance, we map out the training trajectory over the 30 active epochs in Figure~\ref{fig:learning}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.62\columnwidth]{figures/fig_1_learning_curve.png}
+    \caption{Double-DQN validation score trajectory and learning curve over 30 epochs (V76).}
+    \label{fig:learning}
+\end{figure}
+
+The training curve in Figure~\ref{fig:learning} demonstrates excellent training stability. Guided by the soft reward shaping and the HP-aware validation score, the validation score converges smoothly without experiencing the extreme policy oscillations or divergence patterns common in multi-objective wireless scheduling problems.
+
+\subsection{Comparative Analysis Against Heuristic Baselines}
+The final performance metrics, averaged across the 20 matched, seed-controlled co-simulation runs, are presented in Table~\ref{tab:main_results}.
 
 \begin{table}[t]
 \centering
@@ -191,8 +206,7 @@ Table~\ref{tab:main_results} presents quantitative performance metrics compiled 
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccccc}
 \toprule
-\textbf{Policy} & \textbf{Throughput} & \textbf{PDR} & \textbf{PLR} & \textbf{Normal Delay} & \textbf{HP Delay} & \textbf{Energy} & \textbf{HP Delivery} \\
- & \textbf{(kbps)} & \textbf{(\%)} & \textbf{(\%)} & \textbf{(s)} & \textbf{(s)} & \textbf{(nJ/bit)} & \textbf{Ratio (\%)} \\
+\textbf{Policy} & \textbf{Throughput (kbps)} & \textbf{PDR (\%)} & \textbf{PLR (\%)} & \textbf{Normal Delay (s)} & \textbf{HP Delay (s)} & \textbf{Energy (nJ/bit)} & \textbf{HP Delivery Ratio (\%)} \\
 \midrule
 Proposed DQN-Edge & $7.0267 \pm 0.0702$ & $50.3291 \pm 0.6022$ & $40.3309 \pm 0.8373$ & \textbf{0.4287 $\pm$ 0.0261} & $0.1431 \pm 0.0026$ & $443.8708 \pm 16.9422$ & $95.7779 \pm 0.2916$ \\
 Strict Priority (SP) & \textbf{7.9104 $\pm$ 0.0054} & \textbf{56.6625 $\pm$ 0.3137} & \textbf{34.7224 $\pm$ 0.5326} & $0.6171 \pm 0.0384$ & \textbf{0.0274 $\pm$ 0.0015} & \textbf{417.0370 $\pm$ 17.2341} & \textbf{98.3374 $\pm$ 0.1941} \\
@@ -201,6 +215,10 @@ Random Baseline & $2.8000 \pm 0.0350$ & $20.0709 \pm 0.3314$ & $71.4943 \pm 0.54
 \end{tabular}%
 }
 \end{table}
+
+Compared with the Random baseline, the learned scheduler improves throughput, PDR, and HP delivery while reducing packet loss, normal-packet delay, HP-packet delay, and energy consumed per delivered bit. Specifically, throughput rises from 2.8000 kbps to 7.0267 kbps, PDR increases from 20.07\% to 50.33\%, average HP latency decreases from 0.3521s to 0.1431s, and energy per delivered bit drops from 806.70 nJ/bit to 443.87 nJ/bit.
+
+When compared against the dedicated Strict Priority baseline, the learned agent does not achieve superior throughput or HP delay. Strict Priority records an average throughput of 7.9104 kbps, an overall PDR of 56.66\%, an average HP latency of 0.0274s, and an HP delivery ratio of 98.34\%. The paired statistical tests in Table~\ref{tab:stats} confirm that these differences are statistically significant ($p < 10^{-11}$), indicating that these trade-offs are structurally robust and not products of random simulation noise.
 
 \begin{table}[ht]
 \centering
@@ -223,58 +241,44 @@ HP Delivery Ratio (\%) & Paired $t$-test & $2.176 \times 10^{-11}$ & $-3.1005$ \
 \end{tabular}
 \end{table}
 
-\subsection{Convergence and Training Stability}
-Figure~\ref{fig:learning} plots training progression across 30 epochs before early stopping. The validation score rises steadily through the first 5 epochs, reaching stable performance without policy collapse or loss divergence. Multiplicative decay of $\epsilon$ ensures smooth transition from exploratory coverage to deterministic exploitation. The model achieving the highest validation score at Epoch 12 served as the final evaluation policy.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.68\columnwidth]{figures/fig_1_learning_curve.png}
-    \caption{Double-DQN training progression and validation-score trend over 30 epochs (V76).}
-    \label{fig:learning}
-\end{figure}
-
-\subsection{Comparative Analysis Against Heuristic Baselines}
-Compared with the Random baseline, the learned scheduler improves throughput, PDR, and HP delivery while reducing packet loss, normal-packet delay, HP-packet delay, and energy consumed per delivered bit. Specifically, throughput rises from 2.8000\,kbps to 7.0267\,kbps, PDR increases from 20.07\% to 50.33\%, average HP latency decreases from 0.3521\,s to 0.1431\,s, and energy per delivered bit drops from 806.70\,nJ/bit to 443.87\,nJ/bit. Furthermore, the HP delivery ratio rises from 34.49\% under random selection to 95.78\% under the learned controller.
-
-When compared against the dedicated Strict Priority baseline, the learned agent does not achieve superior throughput or HP delay. Strict Priority records an average throughput of 7.9104\,kbps, an overall PDR of 56.66\%, an average HP latency of 0.0274\,s, and an HP delivery ratio of 98.34\%. The paired statistical tests in Table~\ref{tab:stats} confirm that these differences are statistically significant ($p < 10^{-11}$), with large effect sizes reflecting the deterministic behavior of the benchmark.
-
 \subsection{Delay Distribution and Buffer Dynamics}
-Figure~\ref{fig:plots} illustrates policy comparisons across key QoS metrics alongside empirical Cumulative Distribution Functions (CDFs) of end-to-end packet delays.
+To evaluate how these schedulers behave under congestion, we examine the cumulative distribution functions (CDFs) of end-to-end packet latency in Figure~\ref{fig:eval_plots}.
 
 \begin{figure}[htbp]
     \centering
     \begin{minipage}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/fig_4_bar_charts.png}
-        \caption{Pairwise QoS comparisons (Mean $\pm$ 95\% CI).}
+        \caption{Pairwise QoS comparison (Mean $\pm$ 95\% CI).}
         \label{fig:bar}
     \end{minipage}
     \hfill
     \begin{minipage}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{figures/fig_5_delay_cdf.png}
-        \caption{Delay CDFs across traffic classes.}
+        \caption{Delay CDFs for traffic classes.}
         \label{fig:cdf}
     \end{minipage}
-    \label{fig:plots}
+    \label{fig:eval_plots}
+    \vspace{-2mm}
 \end{figure}
 
-The latency CDF curves in Figure~\ref{fig:cdf} illustrate the operational trade-offs of each policy. Strict Priority shifts the HP delay curve toward the origin, routing over 90\% of high-priority packets within 50\,ms. However, this discipline delays normal telemetry traffic, yielding an average normal delay of 0.6171\,s. In contrast, the policy-guided DQN agent balances queue service: it accepts a minor delay in HP traffic (averaging 0.1431\,s) to shift the normal telemetry distribution to the left. As shown in Table~\ref{tab:main_results}, DQN reduces normal packet latency to 0.4287\,s---a 30.5\% reduction relative to Strict Priority ($p = 1.907 \times 10^{-6}, d_z = -3.3284$).
+The latency CDF curves in Figure~\ref{fig:cdf} illustrate the operational trade-offs of each policy. Strict Priority shifts the HP delay curve toward the origin, routing over 90\% of high-priority packets within 50 ms. However, this discipline delays normal telemetry traffic, yielding an average normal delay of 0.6171 s. In contrast, the policy-guided DQN agent balances queue service: it accepts a minor delay in HP traffic (averaging 0.1431 s) to shift the normal telemetry distribution to the left. As shown in Table~\ref{tab:main_results}, DQN reduces average normal packet delay to 0.4287 s—a 30.5\% latency reduction compared to Strict Priority ($p = 1.907 \times 10^{-6}, d_z = -3.3284$).
 
 \subsection{Trade-Off Analysis in Smart Grid Telemetry}
 The quantitative divergence between DQN-Edge and Strict Priority demonstrates a practical scheduling compromise. Strict Priority behaves as a greedy heuristic; it prioritizes immediate HP transmissions regardless of normal queue status. In smart utility applications characterized by bursty fault activity, this behavior induces buffer overflow for routine measurements, depriving grid operators of continuous current, voltage, and thermal sensor readings.
 
-The policy-guided DQN scheduler learns a cooperative balancing policy. By observing head-of-line packet ages ($a_t^H, a_t^N$), the agent learns that newly arrived HP packets can tolerate brief queuing periods without violating their 1.0\,s deadline. During these brief windows, the agent opportunistically clears pending normal telemetry packets before they expire. By accepting a 2.56\% reduction in HP delivery ratio and a 115.7\,ms increase in HP delay, the learned scheduler delivers a 30.5\% improvement in normal packet latency, preserving telemetry flow while maintaining 95.78\% delivery for critical protection alerts.
+The policy-guided DQN scheduler learns a balancing policy between HP and NP traffic. By observing head-of-line packet ages ($a_t^H, a_t^N$), the agent learns that newly arrived HP packets can tolerate brief queuing periods without violating their 1.0 s deadline. During these brief windows, the agent opportunistically clears pending normal telemetry packets before they expire. By accepting a 2.56\% reduction in HP delivery ratio and a 115.7 ms increase in HP delay, the learned scheduler delivers a 30.5\% improvement in normal packet latency, preserving telemetry flow while maintaining 95.78\% delivery for critical protection alerts.
 
 \subsection{Diagnostic Analysis: Reward Shaping vs. Policy Collapse}
-Our development process provided an important lesson regarding reward formulation in communications DRL. In earlier experiments using an unconstrained reward function (V74 configuration), the scheduler suffered from complete policy collapse: the agent converged to a degenerate policy that selected Action 1 (send normal) in 100\% of decision steps. Because normal packets were abundant, transmitting normal traffic provided steady rewards, whereas attempting HP transmissions incurred risk due to bursty arrivals and contention. In that run, zero HP packets were delivered. However, because the simulator contained a zero-division safeguard defaulting average delay to 0.0 when no packets were delivered, the output superficially reported ``0.0000\,s delay''---a deceptive artifact that masked complete high-priority starvation.
+Our development process provided an important lesson regarding reward formulation in communications DRL. In earlier experiments using an unconstrained reward function (V74 configuration), the scheduler suffered from complete policy collapse: the agent converged to a degenerate policy that selected Action 1 (send normal) in 100\% of decision steps. Because normal packets were abundant, transmitting normal traffic provided steady rewards, whereas attempting HP transmissions incurred risk due to bursty arrivals and contention. In that run, zero HP packets were delivered. However, because the simulator contained a zero-division safeguard defaulting average delay to 0.0 when no packets were delivered, the output superficially reported ``0.0000 s delay''—a deceptive artifact that masked complete high-priority starvation.
 
 Introducing the soft policy guidance in V76, paired with an HP-aware validation scoring metric, resolved this pathology. By penalizing the scheduler only when an HP packet aged past $\tau_u = 0.55$, the agent was steered away from trivial local optima without sacrificing its ability to dynamically manage queues. This highlights that reinforcement learning applied to communication protocols requires explicit per-class packet tracking, action distribution validation, and tail latency profiling rather than aggregate reward monitoring alone.
 
 \section{Discussion}
-Our findings show that the Double-DQN policy learns a stable queue-service strategy that balances HP and NP traffic more effectively than the Random baseline. However, Strict Priority's lower HP delay underscores structural limits in unconstrained DRL models. First, the 6-dimensional observation vector provides partial observability, omitting physical-layer channel state information. Second, single-agent Q-learning struggles to match deterministic heuristics on boundary cases without explicit safety overrides.
+Our findings show that the Double-DQN policy learns a stable queue-service strategy that balances HP and NP traffic more effectively than the Random baseline. However, Strict Priority's lower HP delay underscores structural limits in unconstrained DRL models. First, the compact 6-dimensional state vector provides partial observability, omitting physical-layer channel state information. Second, single-agent Q-learning struggles to match deterministic heuristics on boundary cases without explicit safety overrides.
 
-Future research should explore three areas:
+To advance learning-based scheduling for smart grid deployments, future work should address three methodological directions:
 \begin{itemize}
     \item \textbf{Constrained and Safe RL:} Formulating the task as a Constrained MDP via Lagrangian relaxation or action projection layers to enforce hard bounds on HP delay.
     \item \textbf{Distributional Value Approximation:} Utilizing Distributional RL (such as QR-DQN or IQN) to capture queuing delay distributions and mitigate tail-latency outliers.
@@ -284,13 +288,13 @@ Future research should explore three areas:
 \section{Threats to Validity}
 Several limitations apply to our findings. First, all trials were run inside ns-3.40. While ns-3 provides a detailed simulation model of IEEE 802.15.4 CSMA/CA, hardware deployments introduce clock drift, transceiver switching jitter, and multipath effects that are not fully represented in our simulation.
 
-Second, the observed boundaries reflect our specific workload (100 nodes, 100\,ms control intervals, fixed packet timeouts). Altering high-priority traffic ratios or node densities could shift the trade-off surface between Strict Priority and DRL. Finally, our setup focuses on single-hop cluster-head scheduling; extending these controllers to multi-hop meshed forwarding topologies represents an open research challenge.
+Second, the observed boundaries reflect our specific workload (100 nodes, 100 ms control intervals, fixed packet timeouts). Altering high-priority traffic ratios or node densities could shift the trade-off surface between Strict Priority and DRL. Finally, our setup focuses on single-hop cluster-head scheduling; extending these controllers to multi-hop meshed forwarding topologies represents an open research challenge.
 
 \section{Conclusion}
-This study presented a reproducible, statistically grounded evaluation of deep reinforcement learning for priority-aware packet scheduling in wireless sensor networks supporting smart energy infrastructure. By coupling ns-3 with PyTorch via ns3-gym, we trained a policy-guided Double-DQN agent over mixed-criticality traffic workloads. Across 20 seed-synchronized evaluation runs, the learned scheduler outperformed random baseline allocation and preserved a 95.78\% high-priority delivery ratio, though it did not match Strict Priority in high-priority latency or throughput. However, the learned policy demonstrated balanced queue service, achieving a 30.5\% reduction in normal telemetry delay and mitigating buffer starvation.
+This study presented a reproducible, statistically grounded evaluation of deep reinforcement learning for priority-aware packet scheduling in wireless sensor networks supporting smart energy infrastructure. By coupling ns-3 with PyTorch via ns3-gym, we trained a policy-guided Double-DQN agent over mixed-criticality traffic workloads. Across 20 seed-synchronized evaluation runs, the learned scheduler outperformed random baseline allocation and preserved a 95.78\% high-priority delivery ratio, though it did not match Strict Priority in high-priority latency or throughput. However, the learned policy demonstrated balanced queue service, achieving a 30.5\% reduction in normal telemetry delay and mitigating buffer starvation. These findings provide an open empirical benchmark that clarifies the practical performance boundaries and trade-offs of learning-based controllers in safety-critical sensor communications.
 
 \section*{Reproducibility Package}
-To facilitate independent verification, the complete simulation artifacts---including the raw evaluation dataset (\texttt{raw\_results\_v76.csv}), training history (\texttt{training\_log\_v76.csv}), statistical summary tables (\texttt{final\_results\_v76.xlsx}), and the underlying ns-3 C++ and PyTorch source code---are made available for academic reuse.
+To facilitate independent verification, the complete simulation artifacts—including the raw evaluation dataset (\texttt{raw\_results\_v76.csv}), training history (\texttt{training\_log\_v76.csv}), statistical summary tables (\texttt{final\_results\_v76.xlsx}), and the underlying ns-3 C++ and PyTorch source code—are made available for academic reuse.
 
 \bibliographystyle{splncs04}
 \bibliography{references}
